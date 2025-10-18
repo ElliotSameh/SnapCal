@@ -1,0 +1,20 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-snapcal-dev-91b0d-authRole",
+      "UnauthRoleArn": "arn:aws:iam::048356440495:role/amplify-snapcal-dev-91b0d-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::048356440495:role/amplify-snapcal-dev-91b0d-authRole",
+      "Region": "ca-central-1",
+      "DeploymentBucketName": "amplify-snapcal-dev-91b0d-deployment",
+      "UnauthRoleName": "amplify-snapcal-dev-91b0d-unauthRole",
+      "StackName": "amplify-snapcal-dev-91b0d",
+      "StackId": "arn:aws:cloudformation:ca-central-1:048356440495:stack/amplify-snapcal-dev-91b0d/13d13210-ac30-11f0-8d67-0691ab25b043",
+      "AmplifyAppId": "d3maeluiehdmvu"
+    },
+    "categories": {
+      "auth": {
+        "snapcal94dfc1ff": {}
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+// lib/main_navigation_screen.dart
 import 'package:flutter/material.dart';
 import 'app_transitions.dart';
 import 'user_model.dart';
@@ -8,7 +9,7 @@ import 'profile_screen.dart';
 import 'share_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  final User user;
+  final User user; // <-- ADD THIS PROPERTY
 
   const MainNavigationScreen({super.key, required this.user});
 
@@ -18,7 +19,6 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-
   final List<Map<String, dynamic>> _meals = [];
 
   void _addMeal(Map<String, dynamic> meal) {
@@ -40,15 +40,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _screens = [
       HomeScreen(
-        user: widget.user,
         meals: _meals,
         onAddMeal: _addMeal,
         onNavigateToHistory: () => _onTabTapped(1),
       ),
       ShareScreen(meals: _meals),
       HistoryScreen(meals: _meals),
-      ProfileScreen(user: widget.user),
-      // The CameraScreen is now a simple screen again
+      const ProfileScreen(),
       const CameraScreen(),
     ];
   }

@@ -1,13 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'sign_up_screen.dart'; // Import Sign Up screen
-import 'sign_in_screen.dart'; // Import Sign In screen
+import 'package:amplify_flutter/amplify_flutter.dart'; // CHANGE: Added Amplify import
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart'; // CHANGE: Added Auth import
+import 'sign_up_screen.dart';
+import 'sign_in_screen.dart';
 import 'app_transitions.dart';
 import 'main_navigation_screen.dart';
 import 'user_model.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
+
+  // CHANGE: Added a helper function to handle social sign-in
+  Future<void> _handleSocialSignIn(BuildContext context, AuthProvider provider) async {
+    try {
+      // This opens a web view for the user to sign in with the selected provider
+      SignInResult result = await Amplify.Auth.signInWithWebUI(provider: provider);
+      
+      // After successful sign-in, the main.dart logic will detect the session change
+      // and navigate the user to the correct screen automatically.
+      // For now, we can just show a success message.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully signed in with ${provider.name}!')),
+      );
+
+    } on AuthException catch (e) {
+      // Handle sign-in errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing in: ${e.message}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,18 +40,13 @@ class WelcomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
-            // Use spaceBetween to push content to top and bottom
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // TOP SECTION: Main Content
-              // We wrap the main content in a Column to keep it together
-              // and use an Expanded widget to make it fill the middle space.
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo
                     Center(
                       child: Image.asset(
                         'assets/images/logo_un1.png',
@@ -36,8 +54,6 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 50),
-
-                    // Title
                     const Text(
                       "Let's get started!",
                       textAlign: TextAlign.center,
@@ -48,8 +64,6 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 40),
-
-                    // Social Login Buttons
                     const Text(
                       'Continue with',
                       textAlign: TextAlign.center,
@@ -59,15 +73,14 @@ class WelcomeScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildSocialButton('assets/images/google_logo.png'),
-                        _buildSocialButton('assets/images/apple_logo.png'),
-                        _buildSocialButton('assets/images/x_logo.png'),
-                        _buildSocialButton('assets/images/facebook_logo.png'),
+                        // CHANGE: Updated social buttons to call our new handler
+                        _buildSocialButton(context, 'assets/images/google_logo.png', AuthProvider.google),
+                        _buildSocialButton(context, 'assets/images/apple_logo.png', AuthProvider.apple),
+                        _buildSocialButton(context, 'assets/images/x_logo.png', AuthProvider.twitter), // Note: X/Twitter might need extra setup in Cognito
+                        _buildSocialButton(context, 'assets/images/facebook_logo.png', AuthProvider.facebook), // Note: Facebook might need extra setup in Cognito
                       ],
                     ),
                     const SizedBox(height: 40),
-
-                    // OR Divider
                     const Row(
                       children: [
                         Expanded(child: Divider()),
@@ -79,8 +92,6 @@ class WelcomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 40),
-
-                    // Sign Up and Sign In Buttons (FULL WIDTH)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -102,24 +113,10 @@ class WelcomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        
-                        //replace it later
-                        // onPressed: () {
-                        //   Navigator.push(context, createRoute(const SignInScreen()));
-                          
-                        // },
+                        // CHANGE: Replaced the temporary mock logic with navigation to the SignInScreen
                         onPressed: () {
-                          // TEMPORARY: Bypass login and go straight to the main app with a mock user
-                          final mockUser = User(name: 'Guest', email: 'guest@example.com');
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            createRoute(MainNavigationScreen(user: mockUser)),
-                            (Route<dynamic> route) => false,
-                          );
+                          Navigator.push(context, createRoute(const SignInScreen()));
                         },
-
-
-                        
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF3F7E03),
                           side: const BorderSide(color: Color(0xFF3F7E03)),
@@ -134,14 +131,10 @@ class WelcomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // BOTTOM SECTION
-              // Added some padding to lift the text off the bottom edge
               Padding(
                 padding: const EdgeInsets.only(bottom: 20.0),
                 child: GestureDetector(
                   onTap: () {
-                    // TODO: Navigate to Privacy Policy & Terms screen
                     print('Privacy Policy & Term of Use tapped');
                   },
                   child: const Text(
@@ -161,12 +154,10 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  // Helper widget to build social login buttons
-  Widget _buildSocialButton(String assetPath) {
+  // CHANGE: Updated the helper widget to accept context and provider
+  Widget _buildSocialButton(BuildContext context, String assetPath, AuthProvider provider) {
     return InkWell(
-      onTap: () {
-        print('Social button tapped: $assetPath');
-      },
+      onTap: () => _handleSocialSignIn(context, provider), // Call the new handler
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),

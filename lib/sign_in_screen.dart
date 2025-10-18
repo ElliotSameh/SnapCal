@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'sign_up_screen.dart';
 import 'main_navigation_screen.dart';
 import 'app_transitions.dart';
@@ -12,35 +14,109 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  // Form key to validate the form
   final _formKey = GlobalKey<FormState>();
-
-  // Text editing controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _isSigningIn = false;
+
   @override
   void dispose() {
-    // Clean up the controllers when the widget is disposed
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
     if (_formKey.currentState!.validate()) {
-      // Create a mock user from the email field
-      final mockUser = User(
-        name: 'Elliot', // In a real app, this would come from the backend
-        email: _emailController.text,
-      );
+      setState(() {
+        _isSigningIn = true;
+      });
 
-      // On successful sign in, navigate to the main app with the user data
-      Navigator.pushAndRemoveUntil(
-        context,
-        createRoute(MainNavigationScreen(user: mockUser)), // Pass the user here
-        (Route<dynamic> route) => false,
-      );
+      try {
+        // Transform email to username the same way as sign-up
+        String username = _emailController.text.trim().toLowerCase().replaceAll('@', '_');
+
+        SignInResult result = await Amplify.Auth.signIn(
+          username: username,
+          password: _passwordController.text.trim(),
+        );
+
+        if (mounted) {
+          if (result.isSignedIn) {
+            // Fetch user information after successful sign-in
+            final attributes = await Amplify.Auth.fetchUserAttributes();
+            final currentUser = await Amplify.Auth.getCurrentUser();
+            
+            String? name;
+            String? email;
+            
+            for (var attribute in attributes) {
+              if (attribute.userAttributeKey == CognitoUserAttributeKey.name) {
+                name = attribute.value;
+              } else if (attribute.userAttributeKey == CognitoUserAttributeKey.email) {
+                email = attribute.value;
+              }
+            }
+
+            final user = User(
+              id: currentUser.userId,
+              name: name ?? 'User',
+              email: email ?? _emailController.text.trim(),
+            );
+
+            // Navigate to main navigation screen
+            Navigator.pushAndRemoveUntil(
+              context,
+              createRoute(MainNavigationScreen(user: user)),
+              (Route<dynamic> route) => false,
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Sign in was not completed. Please try again.')),
+            );
+          }
+        }
+      } on AuthException catch (e) {
+        if (mounted) {
+          String errorMessage = 'Error signing in: ${e.message}';
+          
+          if (e.message.contains('UserNotFoundException')) {
+            errorMessage = 'No account found with this email. Please sign up first.';
+          } else if (e.message.contains('NotAuthorizedException')) {
+            errorMessage = 'Incorrect email or password. Please try again.';
+          } else if (e.message.contains('UserNotConfirmedException')) {
+            errorMessage = 'Please verify your email first.';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSigningIn = false;
+          });
+        }
+      }
+    }
+  }
+  
+  Future<void> _handleSocialSignIn(AuthProvider provider) async {
+    try {
+      await Amplify.Auth.signInWithWebUI(provider: provider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully signed in with ${provider.name}!')),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error signing in: ${e.message}')),
+        );
+      }
     }
   }
 
@@ -57,7 +133,6 @@ class _SignInScreenState extends State<SignInScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Custom Back Button
                   Align(
                     alignment: Alignment.topLeft,
                     child: IconButton(
@@ -67,7 +142,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Logo
                   Center(
                     child: Image.asset(
                       'assets/images/logo_un1.png',
@@ -76,7 +150,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Title
                   const Text(
                     'Welcome back!',
                     textAlign: TextAlign.center,
@@ -88,7 +161,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Subtitle
                   const Text(
                     'Sign in to continue to your account.',
                     textAlign: TextAlign.center,
@@ -99,7 +171,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
@@ -127,7 +198,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
@@ -153,12 +223,10 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Forgot Password Link
                   Align(
                     alignment: Alignment.centerRight,
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Navigate to Forgot Password screen
                         print('Forgot Password tapped');
                       },
                       child: const Text(
@@ -172,7 +240,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // OR Divider
                   const Row(
                     children: [
                       Expanded(child: Divider()),
@@ -185,21 +252,19 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Social Login Buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildSocialButton('assets/images/google_logo.png'),
-                      _buildSocialButton('assets/images/apple_logo.png'),
-                      _buildSocialButton('assets/images/x_logo.png'),
-                      _buildSocialButton('assets/images/facebook_logo.png'),
+                      _buildSocialButton('assets/images/google_logo.png', AuthProvider.google),
+                      _buildSocialButton('assets/images/apple_logo.png', AuthProvider.apple),
+                      _buildSocialButton('assets/images/x_logo.png', AuthProvider.twitter),
+                      _buildSocialButton('assets/images/facebook_logo.png', AuthProvider.facebook),
                     ],
                   ),
                   const SizedBox(height: 30),
 
-                  // Sign In Button
                   ElevatedButton(
-                    onPressed: _signIn,
+                    onPressed: _isSigningIn ? null : _signIn,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3F7E03),
                       foregroundColor: Colors.white,
@@ -208,14 +273,22 @@ class _SignInScreenState extends State<SignInScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Sign In',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
+                    child: _isSigningIn
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : const Text(
+                            'Sign In',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Sign Up Link
                   Center(
                     child: Text.rich(
                       TextSpan(
@@ -225,12 +298,9 @@ class _SignInScreenState extends State<SignInScreen> {
                           WidgetSpan(
                             child: GestureDetector(
                               onTap: () {
-                                // Navigate to Sign Up screen
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => SignUpScreen(),
-                                  ),
+                                  createRoute(const SignUpScreen()),
                                 );
                               },
                               child: const Text(
@@ -255,12 +325,9 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Helper widget to build social login buttons
-  Widget _buildSocialButton(String assetPath) {
+  Widget _buildSocialButton(String assetPath, AuthProvider provider) {
     return InkWell(
-      onTap: () {
-        print('Social button tapped: $assetPath');
-      },
+      onTap: () => _handleSocialSignIn(provider),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),

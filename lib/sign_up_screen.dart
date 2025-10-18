@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'app_transitions.dart';
 import 'user_model.dart';
 import 'main_navigation_screen.dart';
-import 'sign_in_screen.dart'; // <-- 1. IMPORT ADDED
+import 'sign_in_screen.dart';
+import 'otp_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -12,28 +15,22 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // Form key to validate the form
   final _formKey = GlobalKey<FormState>();
-
-  // Text editing controllers to get the input from users
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Checkbox state
   bool _agreedToTerms = false;
+  bool _isSigningUp = false;
 
   @override
   void dispose() {
-    // Clean up the controllers when the widget is disposed
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _signUp() {
-    // First, check if the terms are agreed to
+  Future<void> _signUp() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must agree to the terms and conditions.')),
@@ -41,19 +38,89 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    // Then, validate the form
     if (_formKey.currentState!.validate()) {
-      // Create a mock user from the name field
-      final mockUser = User(
-        name: _nameController.text,
-        email: _emailController.text,
-      );
+      setState(() {
+        _isSigningUp = true;
+      });
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        createRoute(MainNavigationScreen(user: mockUser)),
-        (Route<dynamic> route) => false,
-      );
+      try {
+        // Create a unique username from the email
+        String username = _emailController.text.trim().toLowerCase().replaceAll('@', '_');
+
+        Map<CognitoUserAttributeKey, String> userAttributes = {
+          CognitoUserAttributeKey.email: _emailController.text.trim(),
+          CognitoUserAttributeKey.name: _nameController.text.trim(),
+        };
+
+        SignUpResult result = await Amplify.Auth.signUp(
+          username: username,
+          password: _passwordController.text.trim(),
+          options: SignUpOptions(userAttributes: userAttributes),
+        );
+
+        if (mounted) {
+          setState(() {
+            _isSigningUp = false;
+          });
+
+          if (!result.isSignUpComplete) {
+            // Navigate to OTP screen with email, password, and username
+            Navigator.of(context).pushReplacement(
+              createRoute(OtpScreen(
+                email: _emailController.text.trim(),
+                password: _passwordController.text.trim(),
+                username: username,
+              )),
+            );
+          } else {
+            // This case happens if sign-up is complete without confirmation
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Sign up complete! Please sign in.')),
+            );
+            Navigator.of(context).pushReplacement(createRoute(const SignInScreen()));
+          }
+        }
+      } on AuthException catch (e) {
+        if (mounted) {
+          setState(() {
+            _isSigningUp = false;
+          });
+          String errorMessage = 'An error occurred during sign up.';
+          if (e.message.contains('UsernameExistsException')) {
+            errorMessage = 'An account with this email already exists. Please sign in.';
+          } else if (e.message.contains('InvalidPasswordException')) {
+            errorMessage = 'Password does not meet the policy requirements.';
+          } else if (e.message.contains('InvalidParameterException')) {
+            errorMessage = e.message;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSigningUp = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _handleSocialSignIn(AuthProvider provider) async {
+    try {
+      await Amplify.Auth.signInWithWebUI(provider: provider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully signed in with ${provider.name}!')),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error signing in: ${e.message}')),
+        );
+      }
     }
   }
 
@@ -70,7 +137,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Custom Back Button
                   Align(
                     alignment: Alignment.topLeft,
                     child: IconButton(
@@ -79,40 +145,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
-                  // Logo
-                  Center(
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      height: 100,
-                    ),
-                  ),
+                  Center(child: Image.asset('assets/images/logo.png', height: 100)),
                   const SizedBox(height: 20),
-
-                  // Title
                   const Text(
                     'Join SnapCal today!',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   const SizedBox(height: 8),
-
-                  // Subtitle
                   const Text(
                     'Create a SnapCal account to track your meal calories.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF7E7C7C),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF7E7C7C)),
                   ),
                   const SizedBox(height: 30),
-
-                  // Name Field
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
@@ -136,8 +182,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Email Field
                   TextFormField(
                     controller: _emailController,
                     decoration: InputDecoration(
@@ -164,8 +208,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Password Field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
@@ -186,15 +228,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
                       }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                      if (value.length < 8) {
+                        return 'Password must be at least 8 characters';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
-
-                  // Terms and Conditions Checkbox
                   Row(
                     children: [
                       Checkbox(
@@ -219,10 +259,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   },
                                   child: const Text(
                                     'Privacy Policy',
-                                    style: TextStyle(
-                                      color: Color(0xFF3F7E03),
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: TextStyle(color: Color(0xFF3F7E03), fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -234,10 +271,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   },
                                   child: const Text(
                                     'Term of Use',
-                                    style: TextStyle(
-                                      color: Color(0xFF3F7E03),
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: TextStyle(color: Color(0xFF3F7E03), fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -248,8 +282,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ],
                   ),
                   const SizedBox(height: 30),
-
-                  // OR Divider
                   const Row(
                     children: [
                       Expanded(child: Divider()),
@@ -261,38 +293,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Social Login Buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildSocialButton('assets/images/google_logo.png'),
-                      _buildSocialButton('assets/images/apple_logo.png'),
-                      _buildSocialButton('assets/images/x_logo.png'),
-                      _buildSocialButton('assets/images/facebook_logo.png'),
+                      _buildSocialButton('assets/images/google_logo.png', AuthProvider.google),
+                      _buildSocialButton('assets/images/apple_logo.png', AuthProvider.apple),
+                      _buildSocialButton('assets/images/x_logo.png', AuthProvider.twitter),
+                      _buildSocialButton('assets/images/facebook_logo.png', AuthProvider.facebook),
                     ],
                   ),
                   const SizedBox(height: 30),
-
-                  // Sign Up Button
                   ElevatedButton(
-                    onPressed: _signUp,
+                    onPressed: _isSigningUp ? null : _signUp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3F7E03),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
+                    child: _isSigningUp
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          )
+                        : const Text('Sign Up', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(height: 20),
-
-                  // Sign In Link
                   Center(
                     child: Text.rich(
                       TextSpan(
@@ -301,19 +328,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         children: [
                           WidgetSpan(
                             child: GestureDetector(
-                              // --- 2. CORRECTED ONTAP CALLBACK ---
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  createRoute(const SignInScreen()),
-                                );
+                                Navigator.push(context, createRoute(const SignInScreen()));
                               },
                               child: const Text(
                                 'Sign In',
-                                style: TextStyle(
-                                  color: Color(0xFF3F7E03),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(color: Color(0xFF3F7E03), fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -330,12 +350,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Helper widget to build social login buttons
-  Widget _buildSocialButton(String assetPath) {
+  Widget _buildSocialButton(String assetPath, AuthProvider provider) {
     return InkWell(
-      onTap: () {
-        print('Social button tapped: $assetPath');
-      },
+      onTap: () => _handleSocialSignIn(provider),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -343,11 +360,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Image.asset(
-          assetPath,
-          width: 32,
-          height: 32,
-        ),
+        child: Image.asset(assetPath, width: 32, height: 32),
       ),
     );
   }

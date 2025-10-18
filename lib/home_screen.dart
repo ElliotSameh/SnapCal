@@ -1,23 +1,77 @@
 import 'package:flutter/material.dart';
-import 'user_model.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import 'package:snapcal_app/user_model.dart';
 
-class HomeScreen extends StatelessWidget {
-  final User user;
+class HomeScreen extends StatefulWidget {
   final List<Map<String, dynamic>> meals;
   final Function(Map<String, dynamic>) onAddMeal;
-  final VoidCallback onNavigateToHistory; // --- NEW CALLBACK PROPERTY ---
+  final VoidCallback onNavigateToHistory;
 
   const HomeScreen({
     super.key,
-    required this.user,
     required this.meals,
     required this.onAddMeal,
-    required this.onNavigateToHistory, // --- ADD TO CONSTRUCTOR ---
+    required this.onNavigateToHistory,
   });
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  User? _currentUser;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentUserAttributes();
+  }
+
+  Future<void> _fetchCurrentUserAttributes() async {
+    try {
+      // Get user attributes
+      List<AuthUserAttribute> attributes = await Amplify.Auth.fetchUserAttributes();
+      String? name;
+      String? email;
+      
+      // Get user ID using getCurrentUser
+      final user = await Amplify.Auth.getCurrentUser();
+      String userId = user.userId;
+
+      // Extract name and email from attributes
+      for (var attribute in attributes) {
+        if (attribute.userAttributeKey == CognitoUserAttributeKey.name) {
+          name = attribute.value;
+        } else if (attribute.userAttributeKey == CognitoUserAttributeKey.email) {
+          email = attribute.value;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _currentUser = User(
+            id: userId,
+            name: name ?? 'User',
+            email: email ?? 'No email',
+          );
+          _isLoading = false;
+        });
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        print('Error fetching user attributes: ${e.message}');
+      }
+    }
+  }
 
   int _getTotalCalories() {
     int total = 0;
-    for (var meal in meals) {
+    for (var meal in widget.meals) {
       total += meal['calories'] as int;
     }
     return total;
@@ -25,12 +79,26 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFFFFFFF),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF3F7E03),
+          ),
+        ),
+      );
+    }
+
     final totalCalories = _getTotalCalories();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        title: const Text('Home', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'Home',
+          style: TextStyle(color: Color(0xFF000000)),
+        ),
         backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -41,7 +109,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome back, ${user.name}!',
+              'Welcome back, ${_currentUser?.name ?? 'User'}!',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -53,8 +121,8 @@ class HomeScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFF3F7E03), const Color(0xFF91C788)],
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF3F7E03), Color(0xFF91C788)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -64,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    meals.isEmpty ? 'No record yet' : "Today's Intake",
+                    widget.meals.isEmpty ? 'No record yet' : "Today's Intake",
                     style: const TextStyle(fontSize: 18, color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
@@ -78,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: onNavigateToHistory, // --- CALL THE NEW CALLBACK ---
+                    onPressed: widget.onNavigateToHistory,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF3F7E03),
