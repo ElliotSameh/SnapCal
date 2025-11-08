@@ -14,6 +14,12 @@
     "categories": {
       "auth": {
         "snapcal94dfc1ff": {}
+      },
+      "storage": {
+        "snapcal0007f3b4": {
+          "bucketName": "amplify-snapcal-dev-91b0d-deployment",
+          "region": "ca-central-1"
+        }
       }
     }
   }

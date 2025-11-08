@@ -147,7 +147,7 @@ class ShareScreen extends StatelessWidget {
               children: [
                 _buildSocialShareButton('assets/images/instagram_logo.png'),
                 _buildSocialShareButton('assets/images/facebook_logo.png'),
-                _buildSocialShareButton('assets/images/twitter_logo.png'),
+                _buildSocialShareButton('assets/images/x_logo.png'),
                 _buildSocialShareButton('assets/images/whatsapp_logo.png'),
               ],
             ),

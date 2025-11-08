@@ -44,7 +44,22 @@ const amplifyconfig = '''{
                             "EMAIL"
                         ]
                     }
+                },
+                "S3TransferUtility": {
+                    "Default": {
+                        "Bucket": "amplify-snapcal-dev-91b0d-deployment",
+                        "Region": "ca-central-1"
+                    }
                 }
+            }
+        }
+    },
+    "storage": {
+        "plugins": {
+            "awsS3StoragePlugin": {
+                "bucket": "amplify-snapcal-dev-91b0d-deployment",
+                "region": "ca-central-1",
+                "defaultAccessLevel": "guest"
             }
         }
     }
