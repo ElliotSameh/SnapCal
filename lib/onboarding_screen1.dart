@@ -1,3 +1,4 @@
+// this one need a change in imgae section(ax ro baiad avaz konam)
 import 'package:flutter/material.dart';
 import 'welcome_screen.dart';
 import 'app_transitions.dart';
@@ -52,15 +53,15 @@ class OnboardingScreen1 extends StatelessWidget {
                     ],
                 ),
                 ),
-                const SizedBox(height: 6), // <-- ADDED: Spacing between the two text blocks
+                const SizedBox(height: 6), 
 
                 // Subtitle Text
                 const Text(
                 'Stay healthy by tracking every meal',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 14, // I chose 14 for readability, you can change to 12
-                    color: Color(0xFF7E7C7C), // The requested grey color
+                    fontSize: 14, 
+                    color: Color(0xFF7E7C7C), 
                 ),
               ),
 

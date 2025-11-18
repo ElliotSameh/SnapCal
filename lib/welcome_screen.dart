@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:amplify_flutter/amplify_flutter.dart'; // CHANGE: Added Amplify import
-import 'package:amplify_auth_cognito/amplify_auth_cognito.dart'; // CHANGE: Added Auth import
+import 'package:amplify_flutter/amplify_flutter.dart'; 
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart'; 
 import 'sign_up_screen.dart';
 import 'sign_in_screen.dart';
 import 'app_transitions.dart';
@@ -11,7 +11,7 @@ import 'user_model.dart';
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
-  // CHANGE: Added a helper function to handle social sign-in
+  // CHANGE: Added a helper function to handle social sign-in(test baiad beshe)
   Future<void> _handleSocialSignIn(BuildContext context, AuthProvider provider) async {
     try {
       // This opens a web view for the user to sign in with the selected provider

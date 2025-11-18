@@ -1,4 +1,3 @@
-// lib/main_navigation_screen.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -112,12 +111,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       );
     }
 
-    // Reordered: Home (0), History (1), Camera (2), Share (3), Profile (4)
+    
     final List<Widget> screens = [
       HomeScreen(
         meals: _meals,
         onAddMeal: _addMeal,
-        onNavigateToHistory: () => _onTabTapped(1), // History is now index 1
+        onNavigateToHistory: () => _onTabTapped(1), 
       ),
       HistoryScreen(meals: _meals),
       CameraScreen(onMealSaved: _addMeal),

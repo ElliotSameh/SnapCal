@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 
-import '../services/s3_service.dart'; // Your S3 service (optional)
-import '../services/mock_food_detector.dart'; // Your MockFoodDetector
-import 'food_detections_result.dart'; // Your models (adjust path if in models/)
-import 'result_screen.dart'; // Your results screen
+import '../services/s3_service.dart'; 
+import '../services/mock_food_detector.dart'; 
+import 'food_detections_result.dart'; 
+import 'result_screen.dart'; 
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -17,7 +17,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _picker = ImagePicker();
-  final S3Service _s3Service = S3Service(); // Optional for S3 upload
+  final S3Service _s3Service = S3Service(); 
   final MockFoodDetector _mockDetector = MockFoodDetector();
 
   bool _isProcessing = false;
@@ -56,7 +56,7 @@ class _CameraScreenState extends State<CameraScreen> {
     });
 
     try {
-      // Optional: Upload to S3 (for persistence in demo)
+      
       String? imageKey;
       try {
         final File file = File(imageFile.path);
@@ -70,10 +70,10 @@ class _CameraScreenState extends State<CameraScreen> {
         );
         if (mounted) setState(() => _progress = 0.5); // Upload done
       } catch (e) {
-        print('S3 upload skipped: $e'); // Non-critical for mock
+        print('S3 upload skipped: $e'); 
       }
 
-      // Mock AI detection (uses your FoodDetectionResult models)
+      // Mock AI detection 
       final result = await _mockDetector.detectFood(imageFile.path);
 
       if (!mounted) return;
@@ -88,8 +88,7 @@ class _CameraScreenState extends State<CameraScreen> {
         MaterialPageRoute(
           builder: (context) => ResultScreen(
             imageFile: imageFile,
-            detectionResult: result, // Your FoodDetectionResult instance
-            // Add onMealSaved if your ResultScreen needs it
+            detectionResult: result, 
           ),
         ),
       );

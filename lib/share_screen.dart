@@ -18,7 +18,7 @@ class ShareScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Check if there are any meals to share
     if (meals.isEmpty) {
-      // --- UPDATED EMPTY STATE ---
+      // --- UPDATED EMPTY STATE (test beshe hatman)---
       return Scaffold(
         backgroundColor: const Color(0xFFFFFFFF),
         appBar: AppBar(
@@ -63,7 +63,7 @@ class ShareScreen extends StatelessWidget {
       );
     }
 
-    // If there are meals, build the shareable content (this part is unchanged)
+    
     return Scaffold(
       backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
@@ -162,7 +162,7 @@ class ShareScreen extends StatelessWidget {
   Widget _buildSocialShareButton(String assetPath) {
     return InkWell(
       onTap: () {
-        // TODO: Implement actual sharing logic
+        // TODO: Implement actual sharing logic(***mohem mohem mohem***)
         print('Share to $assetPath');
       },
       borderRadius: BorderRadius.circular(30),
